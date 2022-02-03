@@ -59,6 +59,18 @@ int main( int argc, char** argv){
     graph.printGraphMap();
 
     const auto & out = graph.collectNodes(GraphMap::CollectionStrategy::A, 0.5);
+
+    std::cout << "Final association" << std::endl;
+
+    for (const auto & [s,cls] : out){
+        std::cout << "Seed: " << s << " ---> ";
+        for (const auto & cl :cls){
+            std::cout << cl << " ";
+        }
+        std::cout << std::endl;
+    }
+
+
     return 0;
     
 }

@@ -123,7 +123,7 @@ std::vector<std::pair<uint, std::vector<uint>>> GraphMap::collectNodes(GraphMap:
           // Remove all incoming edges to the selected node
           // So that it cannot be taken from other SuperNodes
           for (const auto & out_in : edgesIn_[out] ){
-            std::cout << "\tIn edge in the out node: " << s << " --> " << out << " <-- " << out_in << std::endl;
+            std::cout << "\t\tIn edge in the out node: " << s << " --> " << out << " <-- " << out_in << std::endl;
             // Since there is a self loop on the superNode
             // this will select also other superNodes pointing to the
             // current superNode.
