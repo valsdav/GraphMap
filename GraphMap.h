@@ -12,7 +12,9 @@
  */
 
 namespace reco {
+  
   class GraphMap {
+    
   public:
     GraphMap(uint nNodes, const std::vector<uint> &categories);
     ~GraphMap(){};
@@ -39,8 +41,11 @@ namespace reco {
          // Collect also all the nodes connected to the secondary cat1 node.
     };
 
-    // Collection Algorithms
-    std::vector<std::pair<uint, std::vector<uint>>> collectNodes(GraphMap::CollectionStrategy strategy, float threshold);
+    // Output of the collection  [{seed, [list of clusters]}]
+    typedef std::vector<std::pair<uint, std::vector<uint>>> GraphOutput;
+    
+    // Apply the collection algorithms
+    const GraphOutput & collectNodes(GraphMap::CollectionStrategy strategy, float threshold);
     
   private:
     uint nNodes_;
@@ -56,6 +61,14 @@ namespace reco {
     // Rows are interpreted as OUT edges
     // Columns are interpreted as IN edges
     std::map<std::pair<uint, uint>, float> adjMatrix_;
+
+    // Store for the graph collection result
+    GraphOutput graphOutput_;
+    
+    // Implementations of the collection strategies
+    void collectStrategyA(float threshold);
+    void collectStrategyB(float threshold);
+    
   };
 
 }  // namespace reco

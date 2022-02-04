@@ -51,25 +51,33 @@ GraphMap readGraph(string path){
     return graph;
 }
 
-
-int main( int argc, char** argv){
-
-    GraphMap graph = readGraph(argv[1]);
-
-    graph.printGraphMap();
-
-    const auto & out = graph.collectNodes(GraphMap::CollectionStrategy::A, 0.5);
-
-    std::cout << "Final association" << std::endl;
-
-    for (const auto & [s,cls] : out){
+void printOutput(GraphMap::GraphOutput out){
+  for (const auto & [s,cls] : out){
         std::cout << "Seed: " << s << " ---> ";
         for (const auto & cl :cls){
             std::cout << cl << " ";
         }
         std::cout << std::endl;
-    }
+  }  
+}
 
+
+int main( int argc, char** argv){
+
+    GraphMap graph = readGraph(argv[1]);
+    GraphMap graph2 {graph};
+    
+    graph.printGraphMap();
+
+    
+    const auto & out = graph.collectNodes(GraphMap::CollectionStrategy::A, 0.5);
+    std::cout << "Strategy A" << std::endl;
+    printOutput(out);
+
+    
+    const auto & out2 = graph2.collectNodes(GraphMap::CollectionStrategy::B, 0.5);
+    std::cout << "Strategy B" << std::endl;
+    printOutput(out2);
 
     return 0;
     

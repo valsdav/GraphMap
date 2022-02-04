@@ -67,82 +67,111 @@ std::vector<float> GraphMap::getAdjMatrixCol(const uint &j) const {
 };
 
 void GraphMap::printGraphMap(){
-    std::cout << "OUT edges" << std::endl;
-    uint seed = 0;
-    for (const auto & s: edgesOut_){
-        std::cout << "seed: " << seed << " --> ";
-        for(const auto & e: s){
-            std::cout << e << " (" << adjMatrix_[{seed,e}] << ") ";
-        }
-        std::cout << std::endl;
-        seed++;
+  std::cout << "OUT edges" << std::endl;
+  uint seed = 0;
+  for (const auto & s: edgesOut_){
+    std::cout << "seed: " << seed << " --> ";
+    for(const auto & e: s){
+      std::cout << e << " (" << adjMatrix_[{seed,e}] << ") ";
     }
-    std::cout << std::endl << "IN edges" << std::endl;
-    seed =0;
-    for (const auto & s : edgesIn_){
-        std::cout << "seed: " << seed << " <-- ";
-        for(const auto & e: s){
-            std::cout << e << " (" << adjMatrix_[{e,seed}] << ") ";
-        }
-        std::cout << std::endl;
-        seed++;
+    std::cout << std::endl;
+    seed++;
+  }
+  std::cout << std::endl << "IN edges" << std::endl;
+  seed =0;
+  for (const auto & s : edgesIn_){
+    std::cout << "seed: " << seed << " <-- ";
+    for(const auto & e: s){
+      std::cout << e << " (" << adjMatrix_[{e,seed}] << ") ";
     }
-    std::cout << std::endl << "AdjMatrix" << std::endl;
-    for (const auto & s : nodesCategories_[1]){
-        for(size_t n=0; n<nNodes_; n++){
-            std::cout << std::setprecision(2) <<  adjMatrix_[{s,n}] << " ";
-        }
-        std::cout << std::endl;
+    std::cout << std::endl;
+    seed++;
+  }
+  std::cout << std::endl << "AdjMatrix" << std::endl;
+  for (const auto & s : nodesCategories_[1]){
+    for(size_t n=0; n<nNodes_; n++){
+      std::cout << std::setprecision(2) <<  adjMatrix_[{s,n}] << " ";
     }
+    std::cout << std::endl;
+  }
 }
 
 
 //--------------------------------------------------------------
 
-std::vector<std::pair<uint, std::vector<uint>>> GraphMap::collectNodes(GraphMap::CollectionStrategy strategy, float threshold){
-  std::vector<std::pair<uint, std::vector<uint>>> out;
+const GraphMap::GraphOutput & GraphMap::collectNodes(GraphMap::CollectionStrategy strategy, float threshold){
+  // Clear any stored graph output
+  graphOutput_.clear();  
+  
+  if (strategy == GraphMap::CollectionStrategy::A){
+    // Strategy A:
+    // Starting from the highest energy seed (cat1), collect all the nodes. 
+    // Other seeds collected by higher energy seeds (cat1) are ignored 
+    collectStrategyA(threshold);
+  }
+  else if (strategy == GraphMap::CollectionStrategy::B){
+    collectStrategyB(threshold);
+  }
+  return graphOutput_;
+}
 
+void GraphMap::collectStrategyA(float threshold){
   // Strategy A:
   // Starting from the highest energy seed (cat1), collect all the nodes. 
   // Other seeds collected by higher energy seeds (cat1) are ignored 
-  if (strategy == GraphMap::CollectionStrategy::A){
-    const auto & superNodes = nodesCategories_[1];
-    // superNodes are already included in order
-    for(const auto & s : superNodes){
-      std::cout << "seed: " << s << std::endl;
-      std::vector<uint> collectedNodes;
-      // Check if the seed if still available
-      if (adjMatrix_[{s,s}] < threshold) continue;
-      // Loop on the out-coming edges 
-      for (const auto & out : edgesOut_[s]){
-        // Check the threshold for association
-        if (adjMatrix_[{s, out}] >= threshold){
-          std::cout << "\tOut edge: " << s << " --> " << out<< std::endl;
-          // Save the node
-          collectedNodes.push_back(out);
-          // Remove all incoming edges to the selected node
-          // So that it cannot be taken from other SuperNodes
-          for (const auto & out_in : edgesIn_[out] ){
-            std::cout << "\t\tIn edge in the out node: " << s << " --> " << out << " <-- " << out_in << std::endl;
-            // Since there is a self loop on the superNode
-            // this will select also other superNodes pointing to the
-            // current superNode.
-            // Also the self-loop on the correct superNodes is removed. 
-            // The edge is removed in the adjacency matrix score
-            adjMatrix_[{out_in, out}] = 0.;
-          }
-          // Remove also any self-loop so that if the out node is superNode,
-          // so it cannot be used in the next iteration
-          // If out is a cat1 node (seed) this avoids to clean
-          // all the edges from seed "out" to others 
-          adjMatrix_[{out,out}] = 0.;
+  const auto & superNodes = nodesCategories_[1];
+  // superNodes are already included in order
+  for(const auto & s : superNodes){
+    std::cout << "seed: " << s << std::endl;
+    std::vector<uint> collectedNodes;
+    // Check if the seed if still available
+    if (adjMatrix_[{s,s}] < threshold) continue;
+    // Loop on the out-coming edges 
+    for (const auto & out : edgesOut_[s]){
+      // Check the threshold for association
+      if (adjMatrix_[{s, out}] >= threshold){
+        std::cout << "\tOut edge: " << s << " --> " << out<< std::endl;
+        // Save the node
+        collectedNodes.push_back(out);
+        // Remove all incoming edges to the selected node
+        // So that it cannot be taken from other SuperNodes
+        for (const auto & out_in : edgesIn_[out] ){
+          std::cout << "\t\t Deleted edge: " <<  out << " <-- " << out_in << std::endl;
+          // Since there is a self loop on the superNode
+          // this will select also other superNodes pointing to the
+          // current superNode.
+          // Also the self-loop on the correct superNodes is removed. 
+          // The edge is removed in the adjacency matrix score
+          adjMatrix_[{out_in, out}] = 0.;
         }
+        // Remove also any self-loop so that if the out node is superNode,
+        // so it cannot be used in the next iteration
+        // If out is a cat1 node (seed) this avoids to clean
+        // all the edges from seed "out" to others 
+        adjMatrix_[{out,out}] = 0.;
       }
-      out.push_back({s, collectedNodes});
     }
-    /////////////////////////////
-  }  
-  return out;
-
+    graphOutput_.push_back({s, collectedNodes});
+  }
 }
 
+void GraphMap::collectStrategyB(float threshold){
+  // First for each cat0 node (no seed) keep only the highest score link
+  // Then perform strategy A.
+  for(const auto & cl : nodesCategories_[0]){
+    std::pair<uint, float> maxPair {-1,0};
+    for(const auto & seed: edgesIn_[cl]){
+      float score = adjMatrix_[{seed, cl}];
+      if (score > maxPair.second){
+        maxPair = {seed, score};
+      }
+    }
+    // Second loop to remove all the edges apart from the max
+    for(const auto & seed: edgesIn_[cl]){
+      if (seed != maxPair.first)
+        adjMatrix_[{seed,cl}] = 0.;
+    }
+  }
+  // Now run the strategy A
+  collectStrategyA(threshold);  
+}

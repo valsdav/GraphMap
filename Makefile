@@ -1,10 +1,10 @@
-CPPFLAGS=-g -std=c++20 
-LDFLAGS=-g
+CC=g++
+CFLAGS=-I.
+DEPS = GraphMap.h
 
+%.o: %.c $(DEPS)
+	$(CC) -c -o $@ $< $(CFLAGS)
 
-main:  graphmap
-	g++ $(CPPFLAGS) -o main main.cc GraphMap.o 
-
-graphmap:
-	g++ $(CPPFLAGS) -c GraphMap.cc
+main: main.o GraphMap.o 
+	$(CC) -o main main.o GraphMap.o 
 
