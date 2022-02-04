@@ -135,11 +135,13 @@ const GraphMap::GraphOutput & GraphMap::collectNodes(GraphMap::CollectionStrateg
     
   }
   else if(strategy == GraphMap::CollectionStrategy::E){
-    // Like strategy D, but after solving the edges bet
+    // Like strategy D, but after solving the edges between the cat1 seeds,
+    // the cat0 nodes edges are cleaned to keep only the highest score link.
+    // Then proceed as strategy B. 
     resolveSuperNodesEdges(threshold);
     assignHighestScoreEdge();
     collectCascading(threshold);
-    
+
   }
   
   
@@ -195,16 +197,17 @@ void GraphMap::assignHighestScoreEdge(){
     for(const auto & seed: edgesIn_[cl]){
       float score = adjMatrix_[{seed, cl}];
       if (score > maxPair.second){
-        maxPair = {seed, score};
+        maxPair = {seed, score};\
       }
     }
-    std::cout << "cluster: " << cl << " highest score edge from " <<
-      maxPair.first << "| remove seeds: " ;
+    std::cout << "cluster: " << cl << " edge from " <<
+      maxPair.first  <<  "| remove seeds: " ;
     // Second loop to remove all the edges apart from the max
     for(const auto & seed: edgesIn_[cl]){
-      if (seed != maxPair.first)
+      if (seed != maxPair.first){
         std::cout << seed << " ";
         adjMatrix_[{seed,cl}] = 0.;
+      }
     }
     std::cout << std::endl;
   }
@@ -215,7 +218,7 @@ std::pair<GraphMap::GraphOutput, GraphMap::GraphOutputMap> GraphMap::collectSepa
   GraphOutputMap cat0GraphMap;
   // Save a subgraph of only cat1 nodes, without self-loops
   GraphOutput  cat1NodesGraph;
-
+  std::cout << "Collecting separately each seed..." << std::endl;
   // superNodes are already included in order
   for(const auto & s : nodesCategories_[1]){
     std::cout << "seed: " << s << std::endl;
@@ -290,6 +293,7 @@ void GraphMap::mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, Graph
 
 void GraphMap::resolveSuperNodesEdges(float threshold){
   // superNodes are already included in order
+  std::cout << "Resolving superNodes" << std::endl;
   for(const auto & s : nodesCategories_[1]){
     std::cout << "seed: " << s << std::endl;
     // Check if the seed if still available
@@ -302,6 +306,10 @@ void GraphMap::resolveSuperNodesEdges(float threshold){
         if (adjMatrix_[{s, out}] > threshold){
           std::cout << "\tdisable seed: " << out << std::endl;
           adjMatrix_[{out,out}] = 0.;
+          // Remove the edges from that cat1 node
+          for (const auto & c: edgesOut_[out]){
+            adjMatrix_[{out, c}] = 0.;
+          }
         }
       }
     }
