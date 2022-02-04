@@ -37,13 +37,15 @@ namespace reco {
       A, // Collect edgesOut ordered by cat1 index
       B, // First order the edgesIn by score, keeping only the highest one
          // Then collect the edgesOut ordered by cat1 index
-      C  // Like B, but while collecting cat1 nodes in other cat1 nodes,
+      C,  // Like B, but while collecting cat1 nodes in other cat1 nodes,
          // Collect also all the nodes connected to the secondary cat1 node.
+      D,
+      E
     };
 
     // Output of the collection  [{seed, [list of clusters]}]
     typedef std::vector<std::pair<uint, std::vector<uint>>> GraphOutput;
-    
+    typedef std::map<uint, std::vector<uint>> GraphOutputMap;    
     // Apply the collection algorithms
     const GraphOutput & collectNodes(GraphMap::CollectionStrategy strategy, float threshold);
     
@@ -65,10 +67,15 @@ namespace reco {
     // Store for the graph collection result
     GraphOutput graphOutput_;
     
-    // Implementations of the collection strategies
-    void collectStrategyA(float threshold);
-    void collectStrategyB(float threshold);
-    
+    // Functions for the collection strategies
+    void collectCascading(float threshold);
+    void assignHighestScoreEdge();
+    // Return both the output graph with only cat1 nodes and a GraphOutputMap
+    // of the collected cat0 nodes from each cat1 one.
+    std::pair<GraphOutput, GraphOutputMap> collectSeparately(float threshold);
+    void mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, GraphOutputMap cat0GraphMap);
+    void resolveSuperNodesEdges(float threshold);
+
   };
 
 }  // namespace reco
