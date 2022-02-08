@@ -25,6 +25,7 @@ void GraphMap::addEdge(const uint &i, const uint &j) {
   // The first index is the starting node of the outcoming edge.
   edgesOut_.at(i).push_back(j);
   edgesIn_.at(j).push_back(i);
+  // Adding a connection in the adjacency matrix only in one direction
   adjMatrix_[{i, j}] = 1.;
 }
 
@@ -37,7 +38,6 @@ void GraphMap::setAdjMatrixSym(const uint &i, const uint &j, const float &score)
   adjMatrix_[{j, i}] = score;
 };
 
-//Getters
 const std::vector<uint> & GraphMap::getOutEdges(const uint &i) const {
   return edgesOut_.at(i);
 };
@@ -66,6 +66,8 @@ std::vector<float> GraphMap::getAdjMatrixCol(const uint &j) const {
   return out;
 };
 
+//=================================================
+// Debugging info
 void GraphMap::printGraphMap(){
   std::cout << "OUT edges" << std::endl;
   uint seed = 0;
@@ -98,7 +100,7 @@ void GraphMap::printGraphMap(){
 
 
 //--------------------------------------------------------------
-
+// Nodes collection algorithms
 const GraphMap::GraphOutput & GraphMap::collectNodes(GraphMap::CollectionStrategy strategy, float threshold){
   // Clear any stored graph output
   graphOutput_.clear();  
@@ -141,12 +143,14 @@ const GraphMap::GraphOutput & GraphMap::collectNodes(GraphMap::CollectionStrateg
     resolveSuperNodesEdges(threshold);
     assignHighestScoreEdge();
     collectCascading(threshold);
-
   }
-  
-  
+ 
   return graphOutput_;
 }
+
+
+//----------------------------------------
+// Implementation of single actions
 
 void GraphMap::collectCascading(float threshold){
   // Starting from the highest energy seed (cat1), collect all the nodes. 
@@ -169,19 +173,15 @@ void GraphMap::collectCascading(float threshold){
         // Remove all incoming edges to the selected node
         // So that it cannot be taken from other SuperNodes
         for (const auto & out_in : edgesIn_[out] ){
-          std::cout << "\t\t Deleted edge: " <<  out << " <-- " << out_in << std::endl;
-          // Since there is a self loop on the superNode
-          // this will select also other superNodes pointing to the
-          // current superNode.
-          // Also the self-loop on the correct superNodes is removed. 
-          // The edge is removed in the adjacency matrix score
+          // There can be 4 cases:
+          // 1) out == s, out_in can be an incoming edge from other cat1 nodes: to be removed
+          // 2) out == s, out_in==s (self-loop): zeroing will remove the current node from the available ones
+          // 3) out == r, out_in==s (current link): keep this
+          // 4) out == r, out_in==r (self-loop on other cat1 node): remove this making the other superNode not accessible
+          if (out != s && out_in == s ) continue; // No need to remove the edge we are using
           adjMatrix_[{out_in, out}] = 0.;
+          std::cout << "\t\t Deleted edge: " <<  out << " <-- " << out_in << std::endl;
         }
-        // Remove also any self-loop so that if the out node is superNode,
-        // so it cannot be used in the next iteration
-        // If out is a cat1 node (seed) this avoids to clean
-        // all the edges from seed "out" to others 
-        adjMatrix_[{out,out}] = 0.;
       }
     }
     graphOutput_.push_back({s, collectedNodes});
@@ -197,7 +197,7 @@ void GraphMap::assignHighestScoreEdge(){
     for(const auto & seed: edgesIn_[cl]){
       float score = adjMatrix_[{seed, cl}];
       if (score > maxPair.second){
-        maxPair = {seed, score};\
+        maxPair = {seed, score};
       }
     }
     std::cout << "cluster: " << cl << " edge from " <<
@@ -214,10 +214,10 @@ void GraphMap::assignHighestScoreEdge(){
 }
 
 std::pair<GraphMap::GraphOutput, GraphMap::GraphOutputMap> GraphMap::collectSeparately(float threshold){
-  // Collect all the nodes around cat1, but not other cat1 nodes
-  GraphOutputMap cat0GraphMap;
   // Save a subgraph of only cat1 nodes, without self-loops
   GraphOutput  cat1NodesGraph;
+  // Collect all the nodes around cat1, but not other cat1 nodes
+  GraphOutputMap cat0GraphMap;
   std::cout << "Collecting separately each seed..." << std::endl;
   // superNodes are already included in order
   for(const auto & s : nodesCategories_[1]){
@@ -230,9 +230,9 @@ std::pair<GraphMap::GraphOutput, GraphMap::GraphOutputMap> GraphMap::collectSepa
     for (const auto & out : edgesOut_[s]){
       if (out != s && adjMatrix_[{out,out}] > 0){
         // Check if it is another cat1 node
-        // DO NOT CHECK the score, it will be checked during the merging
+        // DO NOT CHECK the score of the edge, it will be checked during the merging
         collectedCat1Nodes.push_back(out);
-        // No self-loops in this represetnation. 
+        // No self-loops are saved in the cat1 graph output 
         // Then continue and do not work on this edgeOut
         continue;
       }
@@ -243,7 +243,7 @@ std::pair<GraphMap::GraphOutput, GraphMap::GraphOutputMap> GraphMap::collectSepa
         collectedNodes.push_back(out);
         // The links of the node to other cat1 nodes are not touched
         // IF the function is called after assignHighestScoreEdge
-        // the other links have been already remove.
+        // the other links have been already removed.
         // IF not: the same node can be assigned to more subgraphs.
         // The self-loop is included in this case in order to save the cat1 node
         // in its own sub-graph.
@@ -267,7 +267,7 @@ void GraphMap::mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, Graph
     if (adjMatrix_[{s,s}] < threshold) continue;
     // If it is, we collect the final list of nodes
     std::vector<uint> collectedNodes;
-    // Take the previously connected cat0 nodes
+    // Take the previously connected cat0 nodes to the current cat1 one
     const auto & cat0nodes = cat0GraphMap[s];
     collectedNodes.insert(std::end(collectedNodes), std::begin(cat0nodes), std::end(cat0nodes));
     // Check connected cat1 nodes
@@ -292,7 +292,6 @@ void GraphMap::mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, Graph
 
 
 void GraphMap::resolveSuperNodesEdges(float threshold){
-  // superNodes are already included in order
   std::cout << "Resolving superNodes" << std::endl;
   for(const auto & s : nodesCategories_[1]){
     std::cout << "seed: " << s << std::endl;
@@ -300,16 +299,17 @@ void GraphMap::resolveSuperNodesEdges(float threshold){
     if (adjMatrix_[{s,s}] < threshold) continue;
     // Loop on the out-coming edges 
     for (const auto & out : edgesOut_[s]){
-      if (out != s && adjMatrix_[{out,out}] > 0){
-        // This is a link to another cat1 node
-        // If the edge score is good the other cat1 node is disabled
-        if (adjMatrix_[{s, out}] > threshold){
-          std::cout << "\tdisable seed: " << out << std::endl;
-          adjMatrix_[{out,out}] = 0.;
-          // Remove the edges from that cat1 node
-          for (const auto & c: edgesOut_[out]){
-            adjMatrix_[{out, c}] = 0.;
-          }
+      if (out != s && adjMatrix_[{out,out}] > 0 && adjMatrix_[{s, out}] > threshold ){
+        // This is a link to another still available cat1 node
+        // If the edge score is good the other cat1 node is not disabled --> remove it
+        std::cout << "\tdisable seed: " << out << std::endl;
+        adjMatrix_[{out,out}] = 0.;
+        // Remove the edges from that cat1 node
+        // This is needed in order to be able to use the
+        // assignHighestScoreEdge after this function correctly
+        for (const auto & c: edgesOut_[out]){
+          adjMatrix_[{out, c}] = 0.;
+          // We don't touch the edgesIn and edgesOut collections but we zero the adjmatrix --> more efficient
         }
       }
     }
