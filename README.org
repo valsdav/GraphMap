@@ -6,6 +6,8 @@ algorithms for ECAL SuperClustering.
 The *GraphMap* class contains both the graph data structure and the
 algorithms to extract final sub-graphs (called SuperClusters)
 
+[[https://indico.cern.ch/event/1117295/contributions/4692358/attachments/2387804/4081206/22_02_09%20-%20DeepSC%20implementation%20in%20CMSSW.pdf][Slides with documentation]]
+
 ** Graph data structure
 The graph is implemented in 3 objects.
 + For each node a list of incoming and outcoming edges are kept
