@@ -273,7 +273,7 @@ void GraphMap::mergeSubGraphs(float threshold, GraphOutput cat1NodesGraph, Graph
     // Check connected cat1 nodes
     for (const auto & out_s: other_seeds){
       // Check the score of the edge for the merging 
-      if (adjMatrix_[{s, out_s}] > threshold){
+      if (adjMatrix_[{out_s, out_s}] > threshold && adjMatrix_[{s, out_s}] > threshold){
         std::cout <<"\tMerging nodes from seed: " << out_s << std::endl;
         // Take the nodes already linked to this cat1 node
         const auto & otherNodes = cat0GraphMap[out_s];
