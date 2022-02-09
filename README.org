@@ -1,0 +1,22 @@
+* GraphMap algorithms standalone implementation
+
+This repository contains the implementation of the graph collection
+algorithms for ECAL SuperClustering.
+
+The *GraphMap* class contains both the graph data structure and the
+algorithms to extract final sub-graphs (called SuperClusters)
+
+** Graph data structure
+The graph is implemented in 3 objects.
++ For each node a list of incoming and outcoming edges are kept
++ the adjacency matrix of the graph is kept in memory as a map  {i,
+  j}--> score
+
+Nodes are distinguished in two categories:
++ cat=0:  normal nodes (clusters)
++ cat=1:  superNodes or seed, from where the collection algorithm
+  starts
+
+The adjency matrix score is provided externally, computed from the
+DeepSC model.
+
